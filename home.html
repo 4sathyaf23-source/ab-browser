@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>AB Browser</title>
+<style>
+  body { margin:0; height:100vh; display:flex; flex-direction:column;
+         align-items:center; justify-content:center; gap:24px;
+         background:#202124; color:#fff; font-family:"Segoe UI",sans-serif; }
+  h1 { font-size:48px; margin:0; font-weight:600; }
+  input { width:min(560px,80vw); padding:14px 20px; border-radius:30px;
+          border:none; background:#303134; color:#fff; font-size:16px; }
+  input:focus { outline:2px solid #8ab4f8; }
+</style>
+</head>
+<body>
+  <h1>AB Browser</h1>
+  <input id="q" placeholder="Search or enter address" autofocus>
+<script>
+  document.getElementById('q').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const t = e.target.value.trim();
+    if (!t) return;
+    const isSite = /^([a-z0-9-]+\.)+[a-z]{2,}(:\d+)?(\/.*)?$/i.test(t);
+    location.href = isSite
+      ? 'https://' + t
+      : 'https://www.google.com/search?q=' + encodeURIComponent(t);
+  });
+</script>
+</body>
+</html>
