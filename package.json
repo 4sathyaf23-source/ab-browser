@@ -1,0 +1,21 @@
+{
+  "name": "ab-browser",
+  "version": "1.0.0",
+  "description": "AB Browser",
+  "author": "Your Name",
+  "main": "main.js",
+  "scripts": {
+    "dist": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.abbrowser.app",
+    "productName": "AB Browser",
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
