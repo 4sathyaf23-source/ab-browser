@@ -107,6 +107,54 @@
   }
   #url:focus { outline: 2px solid var(--accent); }
 
+  /* MODERN SLIDING TOGGLE SWITCH STYLES */
+  .toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ccc;
+    user-select: none;
+    padding: 0 5px;
+  }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+  }
+  .switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #5f6066;
+    transition: .3s;
+    border-radius: 20px;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+  }
+  input:checked + .slider {
+    background-color: var(--accent);
+  }
+  input:checked + .slider:before {
+    transform: translateX(20px);
+  }
+
   /* Workspace */
   .workspace {
     display: flex;
@@ -143,7 +191,15 @@
     <button class="nav-btn" id="reload">↻</button>
     <input type="text" id="url" placeholder="Search or enter address">
     <button class="nav-btn" id="go" style="background:#007bff;">Go</button>
-    <button class="nav-btn" id="ai-toggle" style="background:var(--accent);color:#202124;">AI Copilot</button>
+    
+    <!-- INTERACTIVE SLIDER REPLACES THE OLD BUTTON -->
+    <div class="toggle-container">
+      <span>AI Copilot</span>
+      <label class="switch">
+        <input type="checkbox" id="ai-toggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
   </div>
 
   <div class="workspace">
@@ -160,27 +216,24 @@
   const mainView = document.getElementById('main-view');
   const urlInput = document.getElementById('url');
   const aiSidebar = document.getElementById('ai-sidebar');
+  const aiToggle = document.getElementById('ai-toggle');
 
   let tabs = [];
   let activeId = null;
   let counter = 0;
 
-    // IMMUNE URL AND TEXT SEARCH PARSER RULE
+  // FIXED IMMUNE URL AND TEXT SEARCH PARSER RULE
   function toUrl(text) {
     text = text.trim();
     if (!text) return null;
     
-    // Explicit protocol matches
     if (/^https?:\/\//i.test(text)) return text;
     
-    // Check if it's a real domain extension like google.com, example.org, or localhost
-    // It must contain a dot, must NOT contain spaces, and the part after the dot must look like a TLD
     const domainRegex = /^[a-z0-9\-]+\.[a-z]{2,}(?:\/.*)?$/i;
     if (domainRegex.test(text) || text.toLowerCase() === 'localhost') {
       return 'https://' + text;
     }
     
-    // If it doesn't match a strict website address layout, automatically convert it into a clean search query
     return 'https://google.com' + encodeURIComponent(text);
   }
 
@@ -188,7 +241,16 @@
     return tabs.find(t => t.id === activeId);
   }
 
-  function createTab(url) {
+  function saveSessionState() {
+    const stateData = tabs.map(t => {
+      let currentUrl = '';
+      try { currentUrl = t.wv.getURL(); } catch(e) {}
+      return currentUrl || t.wv.getAttribute('src') || HOME;
+    });
+    localStorage.setItem('ab_saved_session_urls', JSON.stringify(stateData));
+  }
+
+  function createTab(url, shouldSave = true) {
     const id = ++counter;
 
     const wv = document.createElement('webview');
@@ -218,13 +280,16 @@
     });
     wv.addEventListener('did-navigate', (e) => {
       if (activeId === id) urlInput.value = e.url;
+      saveSessionState();
     });
     wv.addEventListener('did-navigate-in-page', (e) => {
       if (e.isMainFrame && activeId === id) urlInput.value = e.url;
+      saveSessionState();
     });
 
     switchTab(id);
     if (!url) urlInput.focus();
+    if (shouldSave) saveSessionState();
   }
 
   function switchTab(id) {
@@ -252,6 +317,7 @@
     } else if (activeId === id) {
       switchTab(tabs[Math.max(0, index - 1)].id);
     }
+    saveSessionState();
   }
 
   function navigate() {
@@ -278,8 +344,14 @@
   });
 
   newTabBtn.addEventListener('click', () => createTab());
-  document.getElementById('ai-toggle').addEventListener('click', () => {
-    aiSidebar.classList.toggle('hidden');
+
+  // TOGGLE SLIDER SYSTEM BINDINGS
+  aiToggle.addEventListener('change', () => {
+    if (aiToggle.checked) {
+      aiSidebar.classList.remove('hidden');
+    } else {
+      aiSidebar.classList.add('hidden');
+    }
   });
 
   document.addEventListener('keydown', (e) => {
@@ -288,10 +360,23 @@
     if (e.ctrlKey && e.key.toLowerCase() === 'l') { e.preventDefault(); urlInput.focus(); }
   });
 
-  // Links that want a new window arrive here from main.js
   if (window.ab) window.ab.onOpenUrl((url) => createTab(url));
 
-  createTab();
+  const savedSessionRaw = localStorage.getItem('ab_saved_session_urls');
+  if (savedSessionRaw) {
+    try {
+      const savedUrls = JSON.parse(savedSessionRaw);
+      if (Array.isArray(savedUrls) && savedUrls.length > 0) {
+        savedUrls.forEach(url => createTab(url, false));
+      } else {
+        createTab(HOME, false);
+      }
+    } catch(err) {
+      createTab(HOME, false);
+    }
+  } else {
+    createTab(HOME, false);
+  }
 </script>
 </body>
 </html>
