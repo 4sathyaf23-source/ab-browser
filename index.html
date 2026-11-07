@@ -165,11 +165,22 @@
   let activeId = null;
   let counter = 0;
 
+    // IMMUNE URL AND TEXT SEARCH PARSER RULE
   function toUrl(text) {
     text = text.trim();
     if (!text) return null;
+    
+    // Explicit protocol matches
     if (/^https?:\/\//i.test(text)) return text;
-    if (text.includes('.') && !text.includes(' ')) return 'https://' + text;
+    
+    // Check if it's a real domain extension like google.com, example.org, or localhost
+    // It must contain a dot, must NOT contain spaces, and the part after the dot must look like a TLD
+    const domainRegex = /^[a-z0-9\-]+\.[a-z]{2,}(?:\/.*)?$/i;
+    if (domainRegex.test(text) || text.toLowerCase() === 'localhost') {
+      return 'https://' + text;
+    }
+    
+    // If it doesn't match a strict website address layout, automatically convert it into a clean search query
     return 'https://google.com' + encodeURIComponent(text);
   }
 
