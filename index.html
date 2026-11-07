@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>AB Browser</title>
+<style>
+  :root {
+    --bg: #202124;
+    --bar: #2f3033;
+    --tab: #3a3b3f;
+    --tab-active: #4a4b50;
+    --border: #3c4043;
+    --input-bg: #303134;
+    --accent: #8ab4f8;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    font-family: "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: #fff;
+    overflow: hidden;
+  }
+
+  /* Tab strip */
+  .tab-strip {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    padding: 6px 8px 0;
+    background: var(--bg);
+    overflow-x: auto;
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 200px;
+    min-width: 120px;
+    padding: 7px 10px;
+    background: var(--tab);
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+  }
+  .tab.active { background: var(--bar); }
+  .tab-title {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .tab-close {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+  }
+  .tab-close:hover { background: #5f6066; color: #fff; }
+  .new-tab {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  .new-tab:hover { background: var(--tab); }
+
+  /* Navigation bar */
+  .nav-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bar);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-btn {
+    padding: 6px 12px;
+    background: var(--tab-active);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .nav-btn:hover { background: #5f6066; }
+  #url {
+    flex: 1;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: none;
+    background: var(--input-bg);
+    color: #fff;
+    font-size: 14px;
+  }
+  #url:focus { outline: 2px solid var(--accent); }
+
+  /* Workspace */
+  .workspace {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  .main-view {
+    flex: 1;
+    display: flex;
+    min-width: 0;
+  }
+  webview.page { display: none; border: none; background: #fff; }
+  webview.page.active { display: flex; flex: 1; }
+
+  .sidebar {
+    width: 380px;
+    border-left: 1px solid var(--border);
+    display: flex;
+    background: #1a1a1a;
+  }
+  .sidebar.hidden { display: none; }
+  .sidebar webview { display: flex; flex: 1; width: 100%; border: none; }
+</style>
+</head>
+<body>
+
+  <div class="tab-strip" id="tabs">
+    <button class="new-tab" id="new-tab" title="New tab (Ctrl+T)">+</button>
+  </div>
+
+  <div class="nav-bar">
+    <button class="nav-btn" id="back">◀</button>
+    <button class="nav-btn" id="forward">▶</button>
+    <button class="nav-btn" id="reload">↻</button>
+    <input type="text" id="url" placeholder="Search or enter address">
+    <button class="nav-btn" id="go" style="background:#007bff;">Go</button>
+    <button class="nav-btn" id="ai-toggle" style="background:var(--accent);color:#202124;">AI Copilot</button>
+  </div>
+
+  <div class="workspace">
+    <div class="main-view" id="main-view"></div>
+    <div class="sidebar" id="ai-sidebar">
+      <webview id="ai-view" src="nexus.html"></webview>
+    </div>
+  </div>
+
+<script>
+  const HOME = 'https://www.google.com';
+  const tabsEl = document.getElementById('tabs');
+  const newTabBtn = document.getElementById('new-tab');
+  const mainView = document.getElementById('main-view');
+  const urlInput = document.getElementById('url');
+  const aiSidebar = document.getElementById('ai-sidebar');
+
+  let tabs = [];
+  let activeId = null;
+  let counter = 0;
+
+  function toUrl(text) {
+    text = text.trim();
+    if (!text) return null;
+    if (/^https?:\/\//i.test(text)) return text;
+    if (text.includes('.') && !text.includes(' ')) return 'https://' + text;
+    return 'https://google.com' + encodeURIComponent(text);
+  }
+
+  function activeTab() {
+    return tabs.find(t => t.id === activeId);
+  }
+
+  function createTab(url) {
+    const id = ++counter;
+
+    const wv = document.createElement('webview');
+    wv.className = 'page';
+    wv.setAttribute('src', url || HOME);
+    mainView.appendChild(wv);
+
+    const tabEl = document.createElement('div');
+    tabEl.className = 'tab';
+    const title = document.createElement('span');
+    title.className = 'tab-title';
+    title.textContent = 'New Tab';
+    const close = document.createElement('button');
+    close.className = 'tab-close';
+    close.textContent = '\u00d7';
+    tabEl.append(title, close);
+    tabsEl.insertBefore(tabEl, newTabBtn);
+
+    tabs.push({ id, wv, tabEl });
+
+    tabEl.addEventListener('click', () => switchTab(id));
+    close.addEventListener('click', (e) => { e.stopPropagation(); closeTab(id); });
+
+    wv.addEventListener('page-title-updated', (e) => {
+      title.textContent = e.title;
+      tabEl.title = e.title;
+    });
+    wv.addEventListener('did-navigate', (e) => {
+      if (activeId === id) urlInput.value = e.url;
+    });
+    wv.addEventListener('did-navigate-in-page', (e) => {
+      if (e.isMainFrame && activeId === id) urlInput.value = e.url;
+    });
+
+    switchTab(id);
+    if (!url) urlInput.focus();
+  }
+
+  function switchTab(id) {
+    activeId = id;
+    tabs.forEach(t => {
+      const on = t.id === id;
+      t.wv.classList.toggle('active', on);
+      t.tabEl.classList.toggle('active', on);
+      if (on) {
+        let u = '';
+        try { u = t.wv.getURL(); } catch (e) {}
+        urlInput.value = u || t.wv.getAttribute('src') || '';
+      }
+    });
+  }
+
+  function closeTab(id) {
+    const index = tabs.findIndex(t => t.id === id);
+    if (index === -1) return;
+    const [tab] = tabs.splice(index, 1);
+    tab.wv.remove();
+    tab.tabEl.remove();
+    if (tabs.length === 0) {
+      createTab();
+    } else if (activeId === id) {
+      switchTab(tabs[Math.max(0, index - 1)].id);
+    }
+  }
+
+  function navigate() {
+    const url = toUrl(urlInput.value);
+    const tab = activeTab();
+    if (url && tab) tab.wv.loadURL(url);
+  }
+
+  document.getElementById('go').addEventListener('click', navigate);
+  urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') navigate(); });
+  urlInput.addEventListener('focus', () => urlInput.select());
+
+  document.getElementById('back').addEventListener('click', () => {
+    const t = activeTab();
+    try { if (t && t.wv.canGoBack()) t.wv.goBack(); } catch (e) {}
+  });
+  document.getElementById('forward').addEventListener('click', () => {
+    const t = activeTab();
+    try { if (t && t.wv.canGoForward()) t.wv.goForward(); } catch (e) {}
+  });
+  document.getElementById('reload').addEventListener('click', () => {
+    const t = activeTab();
+    try { if (t) t.wv.reload(); } catch (e) {}
+  });
+
+  newTabBtn.addEventListener('click', () => createTab());
+  document.getElementById('ai-toggle').addEventListener('click', () => {
+    aiSidebar.classList.toggle('hidden');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key.toLowerCase() === 't') { e.preventDefault(); createTab(); }
+    if (e.ctrlKey && e.key.toLowerCase() === 'w') { e.preventDefault(); closeTab(activeId); }
+    if (e.ctrlKey && e.key.toLowerCase() === 'l') { e.preventDefault(); urlInput.focus(); }
+  });
+
+  // Links that want a new window arrive here from main.js
+  if (window.ab) window.ab.onOpenUrl((url) => createTab(url));
+
+  createTab();
+</script>
+</body>
+</html>
