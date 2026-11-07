@@ -24,7 +24,7 @@ function createWindow() {
   });
 
   // Ad blocker on the main session; don't crash if filter lists fail to download
-  ElectronBlocker.fromPrebuiltAdsAndTracking(fetch)
+  ElectronBlocker.fromPrebuiltAdsOnly(fetch)
     .then((blocker) => blocker.enableBlockingInSession(win.webContents.session))
     .catch((err) => console.error('Adblock failed to load:', err));
 
