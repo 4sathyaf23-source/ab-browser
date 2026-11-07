@@ -15,6 +15,7 @@ function createWindow() {
     width: 1280,
     height: 800,
     autoHideMenuBar: true,
+    icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -24,9 +25,9 @@ function createWindow() {
   });
 
   // Ad blocker on the main session; don't crash if filter lists fail to download
-  // ElectronBlocker.fromPrebuiltAdsOnly(fetch)
-//   .then((blocker) => blocker.enableBlockingInSession(win.webContents.session))
-//   .catch((err) => console.error('Adblock failed to load:', err));
+  ElectronBlocker.fromPrebuiltAdsOnly(fetch)
+    .then((blocker) => blocker.enableBlockingInSession(win.webContents.session))
+    .catch((err) => console.error('Adblock failed to load:', err));
 
   win.loadFile('index.html');
 }
