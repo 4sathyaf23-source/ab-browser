@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nexus AI</title>
+    <title>AI Copilot</title>
     <style>
         body {
             margin: 0;
@@ -39,7 +39,6 @@
             width: 100%;
             height: 100%;
         }
-        /* Elevating the workspace panel to use native Chromium webview rendering */
         webview {
             width: 100%;
             height: 100%;
@@ -50,14 +49,20 @@
 </head>
 <body>
 
+    <!-- CUSTOM BRANDING HEADER TEXT -->
     <div class="header">
         <div class="header-icon"></div>
-        AB Copilot Workspace
+        AB AI Workspace (Powered by DuckDuckGo)
     </div>
 
     <div class="chat-container">
-        <!-- Native webview element bypasses framing restrictions perfectly -->
-        <webview src="https://duckduckgo.com"></webview>
+        <!-- Secure configurations tell the AI chat engine to run cleanly inside our panel window container -->
+        <webview 
+            src="https://duckduckgo.com"
+            useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+            partition="persist:ai_session"
+            allowpopups>
+        </webview>
     </div>
 
 </body>
