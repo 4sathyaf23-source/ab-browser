@@ -107,46 +107,6 @@
   }
   #url:focus { outline: 2px solid var(--accent); }
 
-  /* Sliding toggle switch */
-  .toggle-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #ccc;
-    user-select: none;
-    padding: 0 5px;
-  }
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 20px;
-  }
-  .switch input { opacity: 0; width: 0; height: 0; }
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #5f6066;
-    transition: .3s;
-    border-radius: 20px;
-  }
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .3s;
-    border-radius: 50%;
-  }
-  input:checked + .slider { background-color: var(--accent); }
-  input:checked + .slider:before { transform: translateX(20px); }
-
   /* Workspace */
   .workspace {
     display: flex;
@@ -161,35 +121,6 @@
   webview.page { display: none; border: none; background: #fff; }
   webview.page.active { display: flex; flex: 1; }
 
-  /* AI sidebar (webview lives directly here; no nested webview) */
-  .sidebar {
-    width: 380px;
-    border-left: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    background: #1a1a1a;
-  }
-  .sidebar.hidden { display: none; }
-  .sidebar-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    background: var(--bar);
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    color: var(--accent);
-  }
-  .sidebar-dot {
-    width: 8px;
-    height: 8px;
-    background: var(--accent);
-    border-radius: 50%;
-    box-shadow: 0 0 8px var(--accent);
-  }
-  .sidebar webview { flex: 1; width: 100%; border: none; background: #1a1a1a; }
 </style>
 </head>
 <body>
@@ -205,35 +136,42 @@
     <input type="text" id="url" placeholder="Search or enter address">
     <button class="nav-btn" id="go" style="background:#007bff;">Go</button>
 
-    <div class="toggle-container">
-      <span>AI Copilot</span>
-      <label class="switch">
-        <input type="checkbox" id="ai-toggle" checked>
-        <span class="slider"></span>
-      </label>
-    </div>
   </div>
 
   <div class="workspace">
     <div class="main-view" id="main-view"></div>
-    <div class="sidebar" id="ai-sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-dot"></div>
-        AB AI Workspace (Powered by DuckDuckGo)
-      </div>
-      <webview id="ai-view" src="https://duck.ai" partition="persist:ai_session" allowpopups></webview>
-    </div>
   </div>
 
 <script>
-  const HOME = 'https://www.google.com';
+  const HOME = new URL('home.html', location.href).href;
   const SESSION_KEY = 'ab_saved_session_urls';
   const tabsEl = document.getElementById('tabs');
   const newTabBtn = document.getElementById('new-tab');
   const mainView = document.getElementById('main-view');
   const urlInput = document.getElementById('url');
-  const aiSidebar = document.getElementById('ai-sidebar');
-  const aiToggle = document.getElementById('ai-toggle');
+
+  const HIDE_PROMO_JS = `
+    (function () {
+      const patterns = [/get chrome/i, /install chrome/i, /switch to chrome/i];
+      function sweep() {
+        document.querySelectorAll('div, section, aside, dialog').forEach(el => {
+          if (el.dataset.abChecked) return;
+          const txt = el.innerText || '';
+          if (txt.length < 250 && patterns.some(p => p.test(txt))) {
+            el.style.display = 'none';
+            el.dataset.abChecked = '1';
+          }
+        });
+      }
+      new MutationObserver(sweep).observe(document.documentElement, { childList: true, subtree: true });
+      sweep();
+    })();
+  `;
+  function attachPromoBlocker(wv) {
+    wv.addEventListener('dom-ready', () => {
+      wv.executeJavaScript(HIDE_PROMO_JS).catch(() => {});
+    });
+  }
 
   let tabs = [];
   let activeId = null;
@@ -307,6 +245,13 @@
       saveSessionState();
     });
 
+    wv.addEventListener('did-fail-load', (e) => {
+      if (e.isMainFrame && e.errorCode !== -3) {
+        title.textContent = 'Error ' + e.errorCode + ': ' + e.errorDescription;
+      }
+    });
+    attachPromoBlocker(wv);
+
     switchTab(id);
     if (!url) urlInput.focus();
     if (shouldSave) saveSessionState();
@@ -364,10 +309,6 @@
   });
 
   newTabBtn.addEventListener('click', () => createTab());
-
-  aiToggle.addEventListener('change', () => {
-    aiSidebar.classList.toggle('hidden', !aiToggle.checked);
-  });
 
   function handleShortcut(key) {
     if (key === 't') createTab();
