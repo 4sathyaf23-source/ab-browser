@@ -2,9 +2,10 @@
   "name": "ab-browser",
   "version": "1.0.0",
   "description": "AB Browser",
-  "author": "Your Name",
+  "author": "AB Browser",
   "main": "main.js",
   "scripts": {
+    "start": "electron .",
     "dist": "electron-builder --win --publish never"
   },
   "dependencies": {
@@ -12,12 +13,18 @@
     "cross-fetch": "^4.0.0"
   },
   "devDependencies": {
-    "electron": "^30.0.0",
+    "electron": "^38.0.0",
     "electron-builder": "^24.13.3"
   },
   "build": {
     "appId": "com.abbrowser.app",
     "productName": "AB Browser",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "package.json"
+    ],
     "win": {
       "target": "nsis"
     }
