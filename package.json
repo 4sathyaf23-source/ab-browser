@@ -7,6 +7,10 @@
   "scripts": {
     "dist": "electron-builder --win --publish never"
   },
+  "dependencies": {
+    "@cliqz/adblocker-electron": "^1.2.5",
+    "cross-fetch": "^4.0.0"
+  },
   "devDependencies": {
     "electron": "^30.0.0",
     "electron-builder": "^24.13.3"
