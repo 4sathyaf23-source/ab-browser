@@ -24,10 +24,12 @@
       "preload.js",
       "index.html",
       "home.html",
+      "build/icon.png",
       "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
     }
   }
 }
