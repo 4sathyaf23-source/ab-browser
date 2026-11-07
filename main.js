@@ -1,5 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+const { ElectronBlocker } = require('@cliqz/adblocker-electron');
+const fetch = require('cross-fetch').default;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -13,11 +15,16 @@ function createWindow() {
       webviewTag: true
     }
   });
+
+  // Activate the built-in ad blocker across the main session network thread
+  ElectronBlocker.fromPrebuiltAdsAndTracking(fetch).then((blocker) => {
+    blocker.enableBlockingInSession(win.webContents.session);
+  });
+
   win.loadFile('index.html');
 }
 
-// Links that try to open a new window (target=_blank, window.open)
-// are sent to the UI so it can open them as a new tab.
+// Intercept window links and safely pipe them into the tab interface system
 app.on('web-contents-created', (event, contents) => {
   if (contents.getType() === 'webview') {
     contents.setWindowOpenHandler(({ url }) => {
