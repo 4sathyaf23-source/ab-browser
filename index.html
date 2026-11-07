@@ -152,7 +152,7 @@
 
   const HIDE_PROMO_JS = `
     (function () {
-      const patterns = [/get chrome/i, /install chrome/i, /switch to chrome/i];
+      const patterns = [/get chrome/i, /install chrome/i, /switch to chrome/i, /choose chrome/i, /download chrome/i, /do not use chrome/i];
       function sweep() {
         document.querySelectorAll('div, section, aside, dialog').forEach(el => {
           if (el.dataset.abChecked) return;
